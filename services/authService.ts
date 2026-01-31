@@ -1,6 +1,3 @@
-import { GoogleAuthProvider, signInWithPopup, OAuthProvider } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from './firebaseConfig';
-
 interface AuthResponse {
   success: boolean;
   platform: string;
@@ -8,63 +5,71 @@ interface AuthResponse {
   error?: string;
 }
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
 export class AuthService {
   /**
-   * Connects to a social platform using Firebase Auth.
+   * Connects to a social platform using the backend OAuth server.
    */
   static async connect(platform: 'Instagram' | 'YouTube'): Promise<AuthResponse> {
-    if (!isFirebaseConfigured()) {
-       return { success: false, platform, error: 'Firebase configuration missing.' };
-    }
+    return new Promise((resolve) => {
+      const endpoint = platform === 'Instagram' 
+        ? `${BACKEND_URL}/api/auth/instagram`
+        : `${BACKEND_URL}/api/auth/youtube`;
 
-    try {
-      let provider;
-
-      if (platform === 'YouTube') {
-        provider = new GoogleAuthProvider();
-        provider.addScope('https://www.googleapis.com/auth/youtube.readonly');
-      } else if (platform === 'Instagram') {
-        // Assumes "instagram.com" OIDC or generic OAuth provider is configured in Firebase Console
-        provider = new OAuthProvider('instagram.com');
-        provider.addScope('user_profile');
-        provider.addScope('user_media');
-      }
-
-      if (!provider) throw new Error(`Provider for ${platform} not configured`);
-
-      const result = await signInWithPopup(auth, provider);
+      // Open OAuth popup
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
       
-      let token;
-      if (platform === 'YouTube') {
-         const credential = GoogleAuthProvider.credentialFromResult(result);
-         token = credential?.accessToken;
-      } else {
-         const credential = OAuthProvider.credentialFromResult(result);
-         token = credential?.accessToken;
+      const popup = window.open(
+        endpoint,
+        `${platform} OAuth`,
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no`
+      );
+
+      if (!popup) {
+        resolve({ 
+          success: false, 
+          platform, 
+          error: 'Popup blocked. Please allow popups for this site.' 
+        });
+        return;
       }
 
-      return { 
-        success: true, 
-        platform, 
-        token: token 
+      // Listen for message from popup
+      const messageHandler = (event: MessageEvent) => {
+        // Verify origin for security (adjust in production)
+        if (event.origin !== window.location.origin && !event.origin.includes('localhost')) {
+          return;
+        }
+
+        const { type, platform: responsePlatform, token, error } = event.data;
+
+        if (type === 'AUTH_SUCCESS' && responsePlatform === platform) {
+          window.removeEventListener('message', messageHandler);
+          resolve({ success: true, platform, token });
+        } else if (type === 'AUTH_ERROR' && responsePlatform === platform) {
+          window.removeEventListener('message', messageHandler);
+          resolve({ success: false, platform, error: error || 'Authentication failed' });
+        }
       };
 
-    } catch (error: any) {
-      console.error(`${platform} Auth Error:`, error);
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        return { success: false, platform, error: 'Cancelled by user' };
-      }
-      
-      if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed') {
-        return { 
+      window.addEventListener('message', messageHandler);
+
+      // Handle popup close without auth
+      const checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          window.removeEventListener('message', messageHandler);
+          resolve({ 
             success: false, 
             platform, 
-            error: `The ${platform} sign-in provider is not enabled in the Firebase Console. Please enable it in Authentication > Sign-in method.` 
-        };
-      }
-      
-      return { success: false, platform, error: error.message || 'Authentication failed' };
-    }
+            error: 'Authentication window closed' 
+          });
+        }
+      }, 500);
+    });
   }
 }

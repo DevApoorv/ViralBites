@@ -28,8 +28,8 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
 // DIAGNOSTICS / TESTS
 export const runDiagnostics = async (coords: Coordinates): Promise<TestResult[]> => {
   const tests: TestResult[] = [];
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  console.log(process.env.API_KEY )
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+  console.log(import.meta.env.VITE_API_KEY )
 
   // 1. Test Distance Math
   try {
@@ -46,7 +46,7 @@ export const runDiagnostics = async (coords: Coordinates): Promise<TestResult[]>
   // 2. Test API Connection
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3-pro-preview',
         contents: 'Ping',
     });
     if (response.text) {
@@ -91,7 +91,7 @@ export const findViralTrends = async (
   query: string,
   settings?: UserSettings
 ): Promise<{ candidates: Partial<ViralPlace>[], searchSources: GroundingSource[] }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
   
   // Dynamic instructions based on connected accounts
   let platformFocus = "YouTube Shorts and Instagram Reels";
@@ -129,7 +129,7 @@ export const findViralTrends = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -191,7 +191,7 @@ export const verifyWithMaps = async (
   candidates: Partial<ViralPlace>[],
   coords: Coordinates
 ): Promise<ViralPlace[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
   
   if (candidates.length === 0) return [];
 
@@ -234,7 +234,7 @@ export const verifyWithMaps = async (
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash', // Flash is faster and less prone to timeout on simple tasks
+          model: 'gemini-3-pro-preview',
           contents: prompt,
           config: {
             tools: [{ googleMaps: {} }, { googleSearch: {} }],

@@ -1,0 +1,131 @@
+╔════════════════════════════════════════════════════════════╗
+║                    VIRALBITES QUICK REF                    ║
+╚════════════════════════════════════════════════════════════╝
+
+🚀 QUICK START (Local Development)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. npm install && cd functions && npm install && cd ..
+2. Terminal 1: cd server && npm start
+3. Terminal 2: npm run dev
+4. Open: http://localhost:5173
+
+☁️  FIREBASE DEPLOYMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+./deploy.sh                    # Automated deployment
+# OR
+npm run build && firebase deploy
+
+🔧 USEFUL COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+./check-config.sh              # Check configuration
+npm run dev                    # Start frontend dev server
+npm run build                  # Build for production
+npm run deploy                 # Build and deploy to Firebase
+firebase login                 # Login to Firebase
+firebase emulators:start       # Test functions locally
+firebase functions:log         # View function logs
+
+🔑 ENVIRONMENT VARIABLES (.env)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VITE_API_KEY                   # Google Gemini API Key ✓
+VITE_BACKEND_URL               # Backend API URL
+INSTAGRAM_CLIENT_ID            # Instagram OAuth
+INSTAGRAM_CLIENT_SECRET        # Instagram OAuth
+GOOGLE_CLIENT_ID               # YouTube OAuth
+GOOGLE_CLIENT_SECRET           # YouTube OAuth
+
+📁 KEY FILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+App.tsx                        # Main React component
+services/geminiService.ts      # AI search logic
+services/authService.ts        # OAuth authentication
+functions/index.js             # Backend API
+.env                          # Environment config
+firebase.json                 # Firebase config
+
+🔗 OAUTH REDIRECT URIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Local Development:
+  Instagram: http://localhost:3000/api/auth/instagram/callback
+  YouTube:   http://localhost:3000/api/auth/youtube/callback
+
+Production:
+  Instagram: https://viral-bites-617cd.web.app/api/auth/instagram/callback
+  YouTube:   https://viral-bites-617cd.web.app/api/auth/youtube/callback
+
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+README.md                     # Comprehensive guide
+SETUP.md                      # Quick setup instructions
+IMPLEMENTATION_SUMMARY.md     # What was changed
+.env.example                  # Environment template
+
+🐛 DEBUGGING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Browser Console               # Frontend errors
+firebase functions:log        # Backend errors
+./check-config.sh            # Verify configuration
+App Settings → Run Diagnostics # System checks
+
+🌐 URLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Local:       http://localhost:5173
+Backend:     http://localhost:3000
+Production:  https://viral-bites-617cd.web.app
+Firebase:    https://console.firebase.google.com
+
+🎯 API ENDPOINTS (Backend)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GET  /api/health                    # Health check
+GET  /api/auth/instagram            # Start Instagram OAuth
+GET  /api/auth/instagram/callback   # Instagram callback
+GET  /api/auth/youtube              # Start YouTube OAuth
+GET  /api/auth/youtube/callback     # YouTube callback
+
+✅ TESTING CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+☑ Run ./check-config.sh
+☑ Backend server starts without errors
+☑ Frontend loads at localhost:5173
+☑ Location permission works
+☑ Search returns viral places
+☑ Google Maps links work
+☑ Instagram/YouTube links work
+☑ OAuth flow completes (if configured)
+☑ Build completes: npm run build
+☑ Deploy works: firebase deploy
+
+💡 TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Always restart dev server after .env changes
+• Use specific search terms: "viral dessert", "trending tacos"
+• Check browser console for frontend errors
+• Enable billing on Firebase for Cloud Functions
+• Test locally before deploying
+• Update OAuth redirect URIs after deployment
+
+🆘 COMMON ISSUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"API Key not found"
+  → Check .env has VITE_API_KEY (not API_KEY)
+  → Restart dev server
+
+"OAuth popup blocked"
+  → Allow popups in browser settings
+
+"Backend connection failed"
+  → Check VITE_BACKEND_URL in .env
+  → Ensure backend server is running
+
+"Firebase deploy fails"
+  → Enable billing (required for Cloud Functions)
+  → Check firebase-debug.log
+
+"No results found"
+  → Grant location permission
+  → Try more specific search terms
+  → Check Gemini API quota
+
+╔════════════════════════════════════════════════════════════╗
+║              Made with ❤️  for viral food hunters           ║
+╚════════════════════════════════════════════════════════════╝
