@@ -1,0 +1,7 @@
+{
+  "name": "ViralBites - Viral Food Discovery",
+  "description": "Discover trending and viral food spots near you based on social media buzz, verified by Google Search and Maps.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
