@@ -1,3 +1,6 @@
+import { GoogleAuthProvider, signInWithPopup, OAuthProvider, Auth } from 'firebase/auth';
+import { auth, isFirebaseConfigured } from './firebaseConfig';
+
 interface AuthResponse {
   success: boolean;
   platform: string;
@@ -5,71 +8,64 @@ interface AuthResponse {
   error?: string;
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-
 export class AuthService {
   /**
-   * Connects to a social platform using the backend OAuth server.
+   * Connects to a social platform using Firebase Auth.
    */
   static async connect(platform: 'Instagram' | 'YouTube'): Promise<AuthResponse> {
-    return new Promise((resolve) => {
-      const endpoint = platform === 'Instagram' 
-        ? `${BACKEND_URL}/api/auth/instagram`
-        : `${BACKEND_URL}/api/auth/youtube`;
+    if (!isFirebaseConfigured() || !auth) {
+       return { success: false, platform, error: 'Firebase configuration missing or invalid.' };
+    }
 
-      // Open OAuth popup
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        endpoint,
-        `${platform} OAuth`,
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no`
-      );
+    try {
+      let provider;
 
-      if (!popup) {
-        resolve({ 
-          success: false, 
-          platform, 
-          error: 'Popup blocked. Please allow popups for this site.' 
-        });
-        return;
+      if (platform === 'YouTube') {
+        provider = new GoogleAuthProvider();
+        provider.addScope('https://www.googleapis.com/auth/youtube.readonly');
+      } else if (platform === 'Instagram') {
+        // Assumes "instagram.com" OIDC or generic OAuth provider is configured in Firebase Console
+        provider = new OAuthProvider('instagram.com');
+        provider.addScope('user_profile');
+        provider.addScope('user_media');
       }
 
-      // Listen for message from popup
-      const messageHandler = (event: MessageEvent) => {
-        // Verify origin for security (adjust in production)
-        if (event.origin !== window.location.origin && !event.origin.includes('localhost')) {
-          return;
-        }
+      if (!provider) throw new Error(`Provider for ${platform} not configured`);
 
-        const { type, platform: responsePlatform, token, error } = event.data;
+      // We explicitly cast auth to Auth because isFirebaseConfigured checks if it exists.
+      const result = await signInWithPopup(auth as Auth, provider);
+      
+      let token;
+      if (platform === 'YouTube') {
+         const credential = GoogleAuthProvider.credentialFromResult(result);
+         token = credential?.accessToken;
+      } else {
+         const credential = OAuthProvider.credentialFromResult(result);
+         token = credential?.accessToken;
+      }
 
-        if (type === 'AUTH_SUCCESS' && responsePlatform === platform) {
-          window.removeEventListener('message', messageHandler);
-          resolve({ success: true, platform, token });
-        } else if (type === 'AUTH_ERROR' && responsePlatform === platform) {
-          window.removeEventListener('message', messageHandler);
-          resolve({ success: false, platform, error: error || 'Authentication failed' });
-        }
+      return { 
+        success: true, 
+        platform, 
+        token: token 
       };
 
-      window.addEventListener('message', messageHandler);
-
-      // Handle popup close without auth
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopup);
-          window.removeEventListener('message', messageHandler);
-          resolve({ 
+    } catch (error: any) {
+      console.error(`${platform} Auth Error:`, error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        return { success: false, platform, error: 'Cancelled by user' };
+      }
+      
+      if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed') {
+        return { 
             success: false, 
             platform, 
-            error: 'Authentication window closed' 
-          });
-        }
-      }, 500);
-    });
+            error: `The ${platform} sign-in provider is not enabled in the Firebase Console. Please enable it in Authentication > Sign-in method.` 
+        };
+      }
+      
+      return { success: false, platform, error: error.message || 'Authentication failed' };
+    }
   }
 }

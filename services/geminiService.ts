@@ -28,8 +28,7 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
 // DIAGNOSTICS / TESTS
 export const runDiagnostics = async (coords: Coordinates): Promise<TestResult[]> => {
   const tests: TestResult[] = [];
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
-  console.log(import.meta.env.VITE_API_KEY )
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   // 1. Test Distance Math
   try {
@@ -46,7 +45,7 @@ export const runDiagnostics = async (coords: Coordinates): Promise<TestResult[]>
   // 2. Test API Connection
   try {
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: 'Ping',
     });
     if (response.text) {
@@ -55,7 +54,12 @@ export const runDiagnostics = async (coords: Coordinates): Promise<TestResult[]>
         tests.push({ name: 'Gemini API Connection', status: 'FAIL', message: 'No text returned.' });
     }
   } catch (e: any) {
-    tests.push({ name: 'Gemini API Connection', status: 'FAIL', message: e.message });
+    const msg = e.message || '';
+    if (msg.includes('403') || msg.toLowerCase().includes('leaked') || msg.toLowerCase().includes('key')) {
+         tests.push({ name: 'Gemini API Connection', status: 'FAIL', message: 'API Key Invalid/Leaked (403)' });
+    } else {
+         tests.push({ name: 'Gemini API Connection', status: 'FAIL', message: msg });
+    }
   }
 
   // 3. Test Maps Image Verification
@@ -91,7 +95,7 @@ export const findViralTrends = async (
   query: string,
   settings?: UserSettings
 ): Promise<{ candidates: Partial<ViralPlace>[], searchSources: GroundingSource[] }> => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   // Dynamic instructions based on connected accounts
   let platformFocus = "YouTube Shorts and Instagram Reels";
@@ -129,7 +133,7 @@ export const findViralTrends = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -180,8 +184,11 @@ export const findViralTrends = async (
 
     return { candidates, searchSources: sources };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in findViralTrends:", error);
+    if (error.message?.includes('403') || error.message?.includes('leaked')) {
+        throw new Error("Access Denied: Your API Key has been flagged as leaked. Please generate a new key in Google AI Studio and update your environment variables.");
+    }
     throw new Error("Failed to discover viral trends. Please try again.");
   }
 };
@@ -191,7 +198,7 @@ export const verifyWithMaps = async (
   candidates: Partial<ViralPlace>[],
   coords: Coordinates
 ): Promise<ViralPlace[]> => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   if (candidates.length === 0) return [];
 
@@ -234,7 +241,7 @@ export const verifyWithMaps = async (
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3-pro-preview',
+          model: 'gemini-2.5-flash', // Flash is faster and less prone to timeout on simple tasks
           contents: prompt,
           config: {
             tools: [{ googleMaps: {} }, { googleSearch: {} }],
@@ -310,8 +317,13 @@ export const verifyWithMaps = async (
             isVerified: isVerified
         };
 
-      } catch (err) {
+      } catch (err: any) {
           console.warn(`Verification error for ${candidate.name}:`, err);
+           // Propagate critical API key errors up
+           if (err.message?.includes('403') || err.message?.includes('leaked')) {
+             throw err;
+           }
+
           // If we fail on one, we return a fallback object to keep the app "consistent" rather than crashing or showing nothing,
           // but we mark it as unverified.
           const fallbackLinks = [
